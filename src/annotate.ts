@@ -1,4 +1,5 @@
 import * as core from "@actions/core";
+import * as compat from "./compat";
 
 /**
  * `cargo clippy` JSON-parsed output line.
@@ -38,14 +39,6 @@ function findFirstSpan(spans: DiagnosticSpan[]): DiagnosticSpan {
     });
 }
 
-function escapeChars(s: string): string {
-    return s
-        .replace(/\r/g, "%0D")
-        .replace(/\n/g, "%0A")
-        .replace(/]/g, "%5D")
-        .replace(/;/g, "%3B");
-}
-
 function render(message: Message): void {
     let level: "warning" | "error";
     switch (message.level) {
@@ -64,12 +57,14 @@ function render(message: Message): void {
             break;
     }
 
-    const text = escapeChars(message.rendered);
     const span = findFirstSpan(message.spans);
 
-    console.log(
-        `::${level} file=${span.file_name},line=${span.line_start},col=${span.column_start}::${text}`
-    );
+    const file = compat.escapeProperty(span.file_name);
+    const line = span.line_start;
+    const col = span.column_start;
+    const text = compat.escapeData(message.rendered);
+
+    console.log(`::${level} file=${file},line=${line},col=${col}::${text}`);
 }
 
 export function process(line: string): void {
