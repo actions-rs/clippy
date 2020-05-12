@@ -52,8 +52,8 @@ function render(message: Message): void {
             break;
         case "error":
         case "error: internal compiler error":
-        // Unreachable unless rustc introduces another severity level
         default:
+            // `default` is unreachable unless rustc introduces another severity level
             level = "failure";
             break;
     }
@@ -63,11 +63,16 @@ function render(message: Message): void {
     annotations.annotate({
         title: message.message,
         path: span.file_name,
+        // eslint-disable-next-line @typescript-eslint/camelcase
         annotation_level: level,
         message: message.rendered,
+        // eslint-disable-next-line @typescript-eslint/camelcase
         start_line: span.line_start,
+        // eslint-disable-next-line @typescript-eslint/camelcase
         end_line: span.line_end,
+        // eslint-disable-next-line @typescript-eslint/camelcase
         start_column: span.column_start,
+        // eslint-disable-next-line @typescript-eslint/camelcase
         end_column: span.column_end,
     });
 }
