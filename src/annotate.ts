@@ -1,5 +1,5 @@
 import * as core from "@actions/core";
-import * as compat from "./compat";
+import { annotations } from "@actions-rs/core";
 
 /**
  * `cargo clippy` JSON-parsed output line.
@@ -34,37 +34,42 @@ interface DiagnosticSpan {
  * Returns `[line, column]` tuple.
  */
 function findFirstSpan(spans: DiagnosticSpan[]): DiagnosticSpan {
+    // TODO: Should it just use `is_primary = true`?
     return spans.reduce(function (a, b) {
         return a.line_start < b.line_start ? a : b;
     });
 }
 
 function render(message: Message): void {
-    let level: "warning" | "error";
+    let level: annotations.AnnotationLevel;
     switch (message.level) {
         case "help":
         case "note":
+            level = "notice";
+            break;
         case "warning":
             level = "warning";
             break;
         case "error":
         case "error: internal compiler error":
-            level = "error";
-            break;
+        // Unreachable unless rustc introduces another severity level
         default:
-            // Unreachable unless rustc introduces another severity level
-            level = "error";
+            level = "failure";
             break;
     }
 
     const span = findFirstSpan(message.spans);
 
-    const file = compat.escapeProperty(span.file_name);
-    const line = span.line_start;
-    const col = span.column_start;
-    const text = compat.escapeData(message.rendered);
-
-    console.log(`::${level} file=${file},line=${line},col=${col}::${text}`);
+    annotations.annotate({
+        title: message.message,
+        path: span.file_name,
+        annotation_level: level,
+        message: message.rendered,
+        start_line: span.line_start,
+        end_line: span.line_end,
+        start_column: span.column_start,
+        end_column: span.column_end,
+    });
 }
 
 export function process(line: string): void {
